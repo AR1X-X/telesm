@@ -1,0 +1,58 @@
+Telesm Project Report — Real-Time Messenger
+1) Project Overview
+Telesm is a modern Telegram-style messenger developed as a class project. The application implements the core features of a professional messenger: sign-up with mobile number, real-time messaging, group and private chats, online/offline indicators, a "typing..." indicator, read receipts, image sharing, user profiles, a bilingual (Persian/English) user interface, and an Admin Panel for the application owner.
+The goal of this project is to demonstrate a complete modern Full-Stack architecture in which the front end, back end, and real-time layer are integrated within a single framework (Next.js).
+•	Telegram-style authentication — Sign-up and login with mobile number + password; login is also possible with an @username.
+•	Real-time messaging — Instant message delivery via WebSocket (the socket.io library), with typing and online presence indicators.
+•	Private and group chats — Support for one-to-one and group chats with unread message counters.
+•	Read receipts — A "seen" tick is shown after the recipient views a message.
+•	Emoji picker and image sharing — With automatic client-side image compression.
+•	User profile — Ability to edit display name, bio, and avatar.
+•	Bilingual interface — Switch between Persian (RTL) and English (LTR).
+•	Persistent storage — SQLite database via the Prisma ORM; messages survive a page refresh.
+•	Admin panel at /admin — The application owner can view all users, live statistics, and manage accounts.
+2) Technologies Used
+Layer	Technology	Reason for Choice
+Front/Back-end Framework	Next.js 16 (App Router) + TypeScript	Modern full-stack framework with simultaneous support for UI and API Routes in a single project
+Styling	Tailwind CSS 4 + shadcn/ui	Utility-first styling and reusable components
+Visual Theme	Purple Glassmorphism	Modern glassy look with blur layers and gradients
+Real-time Layer	socket.io (client + server)	Two-way WebSocket communication for messages, typing, and presence
+Database	SQLite + Prisma ORM	Lightweight database with no need for a separate server + type-safe ORM
+Client State Management	Zustand	Lightweight and simple state-management library with persist support
+Authentication	HttpOnly cookie + scrypt + Session Token	High security against XSS and timing attacks
+Persian Font	Vazirmatn	Standard, readable font for Persian text
+3) File Structure
+The project follows the App Router architecture in Next.js. The main structure is:
+•	src/lib/socket-server.ts — The most important back-end file. The socket.io server runs on port 3003 inside the same Next.js process and is responsible for managing connections, socket authentication, persisting messages to the database, broadcasting messages to chat members, and showing online/offline and typing states.
+•	src/lib/auth.ts — The authentication layer, including password hashing with scrypt, timing-attack-resistant validation, normalization of Iranian mobile numbers (supporting +98, 09, and 9xxxxxxxxx formats), and session management.
+•	src/store/chat-store.ts — The central Zustand store that keeps chats, messages, online users, and typing state on the client. It uses an Optimistic Update pattern with a tempId so a message appears in the UI before the server confirms it.
+•	src/lib/media.ts — Image compression using canvas with an adaptive quality loop. Images larger than 1.2 MB are compressed automatically.
+•	src/lib/i18n.ts — A fully bilingual dictionary with about 60 translation keys and a useLang hook that stores the language choice in localStorage.
+•	src/app/api/admin/users/route.ts — The heart of the admin panel. With 5 concurrent queries it returns the list of all users, total message count, private and group chat counts, and online users.
+4) How to Run
+•	Node.js version 18 or higher
+•	npm or bun
+After startup:
+•	Messenger: http://localhost:3000
+•	Admin panel: http://localhost:3000/admin
+A .env file with the following content:
+Role	Mobile Number	Username	Password
+Admin	09000000000	admin	telesm_admin
+Ali (Teacher)	09121111111	ali_teacher	1234
+Sara (Student)	09122222222	sara_student	1234
+5) Application Flow
+•	Online/Offline: Upon socket connection, the user is registered in the online registry and the status is broadcast to everyone.
+•	Typing: A typing event is sent to other chat members.
+•	Seen: When a chat is opened, a read event goes to the server, lastReadAt is updated in the database, and a blue tick is shown to the sender.
+•	The admin signs in with a dedicated account (only users with the ADMIN role are allowed).
+•	The main page shows live statistics: total users, total messages, private and group chat counts, and online users.
+•	A table lists all accounts with display name, username, mobile number, message count, join date, and online status.
+•	The admin can delete non-admin users (their messages and memberships are deleted via cascade).
+6) Technical Highlights
+•	Embedded socket.io server — The real-time server runs inside the same Next.js process (via the instrumentation.ts hook), so no separate server is needed.
+•	Singleton pattern with globalThis — To prevent connection leaks during Hot Module Replacement, this pattern is used in both Prisma and the socket server.
+•	Optimistic UI with tempId — Messages appear in the UI before server confirmation, creating a very smooth user experience.
+•	Adaptive image compression — Image quality is reduced dynamically so the final size never exceeds 1.2 MB.
+•	Bilingual with dynamic RTL/LTR — Switching the language also changes the direction (dir) of the html tag dynamically.
+7) Conclusion
+Telesm demonstrates how a complete messenger — authentication, real-time messaging, group chats, media handling, and administration — can be built within a single modern full-stack framework while keeping the codebase clean, type-safe, and secure.
